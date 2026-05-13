@@ -2,6 +2,34 @@ import apiClient from './apiClient'
 
 const USUARIOS_URL = 'http://localhost:8082/api/v1'
 
+// Usuarios
+
+export const obtenerUsuarios = async (token) => {
+    const client = apiClient(token)
+    const response = await client.get(`${USUARIOS_URL}/usuarios`)
+    return response.data
+}
+
+export const crearUsuario = async (usuario, token) => {
+    const client = apiClient(token)
+    const response = await client.post(`${USUARIOS_URL}/usuarios`, usuario)
+    return response.data
+}
+
+// Roles
+
+export const obtenerRoles = async (token) => {
+    const client = apiClient(token)
+    const response = await client.get(`${USUARIOS_URL}/roles`)
+    return response.data
+}
+
+export const crearRol = async (rol, token) => {
+    const client = apiClient(token)
+    const response = await client.post(`${USUARIOS_URL}/roles`, rol)
+    return response.data
+}
+
 // Estudiantes
 
 export const obtenerEstudiantes = async (token) => {
@@ -10,22 +38,16 @@ export const obtenerEstudiantes = async (token) => {
     return response.data
 }
 
-export const crearEstudiante = async (token, estudiante) => {
+export const crearEstudiante = async (estudiante, token) => {
     const client = apiClient(token)
     const response = await client.post(`${USUARIOS_URL}/estudiantes`, estudiante)
     return response.data
 }
 
-// Usuarios / Docentes
+// Apoderados
 
-export const obtenerUsuarios = async (token) => {
+export const crearApoderado = async (apoderado, token) => {
     const client = apiClient(token)
-    const response = await client.get(`${USUARIOS_URL}/usuarios`)
-    return response.data
-}
-
-export const crearUsuario = async (token, usuario) => {
-    const client = apiClient(token)
-    const response = await client.post(`${USUARIOS_URL}/usuarios`, usuario)
+    const response = await client.post(`${USUARIOS_URL}/apoderados`, apoderado)
     return response.data
 }

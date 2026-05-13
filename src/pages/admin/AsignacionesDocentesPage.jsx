@@ -11,10 +11,15 @@ import {
     eliminarAsignacionDocente
 } from '../../api/academicoApi'
 
+import {
+    obtenerUsuarios
+} from '../../api/usuariosApi'
+
 function AsignacionesDocentesPage() {
 
     const { getAccessTokenSilently } = useAuth0()
 
+    const [docentes, setDocentes] = useState([])
     const [cursos, setCursos] = useState([])
     const [asignaturas, setAsignaturas] = useState([])
     const [periodos, setPeriodos] = useState([])
@@ -48,16 +53,26 @@ function AsignacionesDocentesPage() {
             const token = await obtenerToken()
 
             const [
+                usuariosData,
                 cursosData,
                 asignaturasData,
                 periodosData,
                 asignacionesData
             ] = await Promise.all([
+                obtenerUsuarios(token),
                 obtenerCursos(token),
                 obtenerAsignaturas(token),
                 obtenerPeriodos(token),
                 obtenerAsignacionesDocentes(token)
             ])
+
+            const docentesFiltrados = usuariosData.filter(
+                usuario =>
+                    usuario.nombreRol &&
+                    usuario.nombreRol.toLowerCase() === 'docente'
+            )
+
+            setDocentes(docentesFiltrados)
 
             setCursos(cursosData)
             setAsignaturas(asignaturasData)
@@ -101,6 +116,7 @@ function AsignacionesDocentesPage() {
             !formulario.asignaturaId ||
             !formulario.periodoAcademicoId
         ) {
+
             setError('Todos los campos son obligatorios.')
             return
         }
@@ -151,6 +167,7 @@ function AsignacionesDocentesPage() {
     }
 
     return (
+
         <div className="container py-5">
 
             <div className="medieval-card mb-4">
@@ -175,16 +192,32 @@ function AsignacionesDocentesPage() {
                     <div className="col-md-3">
 
                         <label className="form-label">
-                            ID Docente
+                            Docente
                         </label>
 
-                        <input
-                            type="number"
+                        <select
                             name="docenteId"
-                            className="form-control"
+                            className="form-select"
                             value={formulario.docenteId}
                             onChange={manejarCambio}
-                        />
+                        >
+
+                            <option value="">
+                                Seleccione docente
+                            </option>
+
+                            {
+                                docentes.map(docente => (
+                                    <option
+                                        key={docente.id}
+                                        value={docente.id}
+                                    >
+                                        {docente.nombre} {docente.apellido}
+                                    </option>
+                                ))
+                            }
+
+                        </select>
 
                     </div>
 
@@ -313,7 +346,7 @@ function AsignacionesDocentesPage() {
 
                             <tr>
                                 <th>ID</th>
-                                <th>Docente</th>
+                                <th>Docente ID</th>
                                 <th>Curso</th>
                                 <th>Asignatura</th>
                                 <th>Periodo</th>

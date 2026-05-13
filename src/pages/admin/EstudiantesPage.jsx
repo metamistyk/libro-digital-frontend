@@ -111,7 +111,7 @@ function EstudiantesPage() {
                 cursoId: Number(formulario.cursoId)
             }
 
-            await crearEstudiante(token, payload)
+            await crearEstudiante(payload, token)
 
             limpiarFormulario()
 
