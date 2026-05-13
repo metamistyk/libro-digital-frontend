@@ -16,7 +16,8 @@ function PeriodosPage() {
     const [formulario, setFormulario] = useState({
         nombre: '',
         fechaInicio: '',
-        fechaFin: ''
+        fechaTermino: '',
+        activo: true
     })
 
     useEffect(() => {
@@ -48,11 +49,11 @@ function PeriodosPage() {
 
     const manejarCambio = (event) => {
 
-        const { name, value } = event.target
+        const { name, value, type, checked } = event.target
 
         setFormulario({
             ...formulario,
-            [name]: value
+            [name]: type === 'checkbox' ? checked : value
         })
     }
 
@@ -61,7 +62,8 @@ function PeriodosPage() {
         setFormulario({
             nombre: '',
             fechaInicio: '',
-            fechaFin: ''
+            fechaTermino: '',
+            activo: true
         })
     }
 
@@ -72,7 +74,7 @@ function PeriodosPage() {
         if (
             !formulario.nombre ||
             !formulario.fechaInicio ||
-            !formulario.fechaFin
+            !formulario.fechaTermino
         ) {
             setError('Todos los campos son obligatorios.')
             return
@@ -82,10 +84,18 @@ function PeriodosPage() {
 
             const token = await obtenerToken()
 
-            await crearPeriodo(token, formulario)
+            const payload = {
+                nombre: formulario.nombre,
+                fechaInicio: formulario.fechaInicio,
+                fechaTermino: formulario.fechaTermino,
+                activo: formulario.activo
+            }
+
+            await crearPeriodo(token, payload)
 
             limpiarFormulario()
             await cargarPeriodos()
+            setError('')
 
         } catch (error) {
 
@@ -151,16 +161,36 @@ function PeriodosPage() {
                     <div className="col-md-4">
 
                         <label className="form-label">
-                            Fecha Fin
+                            Fecha Término
                         </label>
 
                         <input
                             type="date"
-                            name="fechaFin"
+                            name="fechaTermino"
                             className="form-control"
-                            value={formulario.fechaFin}
+                            value={formulario.fechaTermino}
                             onChange={manejarCambio}
                         />
+
+                    </div>
+
+                    <div className="col-md-4">
+
+                        <div className="form-check mt-4">
+
+                            <input
+                                type="checkbox"
+                                name="activo"
+                                className="form-check-input"
+                                checked={formulario.activo}
+                                onChange={manejarCambio}
+                            />
+
+                            <label className="form-check-label">
+                                Periodo activo
+                            </label>
+
+                        </div>
 
                     </div>
 
@@ -195,7 +225,8 @@ function PeriodosPage() {
                                 <th>ID</th>
                                 <th>Nombre</th>
                                 <th>Fecha Inicio</th>
-                                <th>Fecha Fin</th>
+                                <th>Fecha Término</th>
+                                <th>Activo</th>
                             </tr>
 
                         </thead>
@@ -204,12 +235,14 @@ function PeriodosPage() {
 
                             {
                                 periodos.map(periodo => (
+
                                     <tr key={periodo.id}>
 
                                         <td>{periodo.id}</td>
                                         <td>{periodo.nombre}</td>
                                         <td>{periodo.fechaInicio}</td>
-                                        <td>{periodo.fechaFin}</td>
+                                        <td>{periodo.fechaTermino}</td>
+                                        <td>{periodo.activo ? 'Sí' : 'No'}</td>
 
                                     </tr>
                                 ))
