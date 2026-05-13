@@ -9,8 +9,26 @@ function ProtectedRoute({
 
     const {
         isAuthenticated,
+        isLoading,
         user
     } = useAuth0()
+
+    if (isLoading) {
+
+        return (
+            <div className="container py-5">
+
+                <div className="medieval-card">
+
+                    <h3>
+                        Cargando sesión...
+                    </h3>
+
+                </div>
+
+            </div>
+        )
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/" />

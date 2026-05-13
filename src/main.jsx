@@ -6,7 +6,7 @@ import { Auth0Provider } from '@auth0/auth0-react'
 import App from './App'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
-import './index.css'
+import './styles/medieval.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
 
