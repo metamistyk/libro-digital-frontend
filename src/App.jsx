@@ -14,7 +14,8 @@ import PeriodosPage from './pages/admin/PeriodosPage'
 import AsignacionesDocentesPage from './pages/admin/AsignacionesDocentesPage'
 import EstudiantesPage from './pages/admin/EstudiantesPage'
 import UsuariosPage from './pages/admin/UsuariosPage'
-
+import RankingPage from './pages/docente/RankingPage'
+import MensajeriaPage from './pages/docente/MensajeriaPage'
 import DocenteDashboard from './pages/docente/DocenteDashboard'
 import UsuarioDashboard from './pages/usuario/UsuarioDashboard'
 
@@ -98,6 +99,24 @@ function App() {
           element={
             <ProtectedRoute requiredRole="docente">
               <DocenteDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/docente/ranking"
+          element={
+            <ProtectedRoute requiredRole="docente">
+              <RankingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/docente/mensajeria"
+          element={
+            <ProtectedRoute requiredRole="docente">
+              <MensajeriaPage />
             </ProtectedRoute>
           }
         />

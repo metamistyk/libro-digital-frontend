@@ -86,12 +86,28 @@ function Navbar() {
 
                     {
                         isAuthenticated && roles.includes('docente') && (
-                            <Link
-                                to="/docente"
-                                className="btn medieval-btn"
-                            >
-                                Portal Docente
-                            </Link>
+                            <>
+                                <Link
+                                    to="/docente"
+                                    className="btn medieval-btn"
+                                >
+                                    Portal Docente
+                                </Link>
+
+                                <Link
+                                    to="/docente/ranking"
+                                    className="btn medieval-btn"
+                                >
+                                    Ranking
+                                </Link>
+
+                                <Link
+                                    to="/docente/mensajeria"
+                                    className="btn medieval-btn"
+                                >
+                                    Mensajería
+                                </Link>
+                            </>
                         )
                     }
 
