@@ -51,9 +51,9 @@ El archivo `src/auth/auth0-config.js` contiene la configuración de Auth0.
 Para un entorno propio, actualiza:
 
 ```javascript
-domain: 'TU_DOMINIO.auth0.com'
-clientId: 'TU_CLIENT_ID'
-audience: 'TU_AUDIENCE'
+domain: 'dev-hnxz55jjtq1inapb.us.auth0.com'
+clientId: '7OGvZ3Y0AB9dPiWHsMWgnRjWTa7bs1lv'
+audience: 'https://libro-digital-api'
 ```
 
 ## Estructura del proyecto
