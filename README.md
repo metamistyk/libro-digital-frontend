@@ -1,16 +1,70 @@
-# React + Vite
+# Libro Digital — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web desarrollada en React + Vite que consume el BFF Service
+para presentar la información del libro digital a docentes, administradores y estudiantes.
 
-Currently, two official plugins are available:
+## Tecnologías
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 18
+- Vite
+- React Router DOM
+- Auth0 (autenticación)
+- Axios (cliente HTTP)
+- Bootstrap 5
 
-## React Compiler
+## Requisitos previos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 18 o superior
+- npm instalado
+- BFF Service corriendo en `http://localhost:8080`
+- Los tres microservicios backend corriendo
 
-## Expanding the ESLint configuration
+## Instalación y ejecución
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+# Clonar el repositorio
+git clone https://github.com/metamistyk/libro-digital-frontend.git
+cd libro-digital-frontend
+
+# Instalar dependencias
+npm install
+
+# Ejecutar en modo desarrollo
+npm run dev
+```
+
+La aplicación quedará disponible en `http://localhost:5173`
+
+## Roles disponibles
+
+| Rol | Acceso |
+|-----|--------|
+| `admin` | Gestión de usuarios, estudiantes, cursos, asignaturas, periodos y asignaciones |
+| `docente` | Registro de asistencia, notas, anotaciones, mensajería y ranking |
+| `estudiante` | Consulta de asistencias, notas, anotaciones, notificaciones y mensajería |
+
+Los roles se asignan desde el dashboard de Auth0.
+
+## Variables de entorno
+
+El archivo `src/auth/auth0-config.js` contiene la configuración de Auth0.
+Para un entorno propio, actualiza:
+
+```javascript
+domain: 'TU_DOMINIO.auth0.com'
+clientId: 'TU_CLIENT_ID'
+audience: 'TU_AUDIENCE'
+```
+
+## Estructura del proyecto
+
+```
+src/
+├── api/          # Clientes HTTP por servicio
+├── auth/         # Configuración Auth0 y rutas protegidas
+├── components/   # Navbar y componentes reutilizables
+└── pages/
+    ├── admin/    # Páginas del rol admin
+    ├── docente/  # Dashboard, ranking, mensajería
+    └── usuario/  # Dashboard del estudiante
+```
