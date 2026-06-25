@@ -9,11 +9,29 @@ import {
 } from '../../api/asistenciaApi'
 import { obtenerRecibidos, enviarMensaje, obtenerConversacion } from '../../api/mensajeriaApi'
 
+// Formatea fechas ISO a formato legible
+const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return '—'
+    try {
+        const fecha = new Date(fechaStr)
+        return fecha.toLocaleString('es-CL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    } catch {
+        return fechaStr
+    }
+}
+
 function UsuarioDashboard() {
 
     const { user, getAccessTokenSilently } = useAuth0()
 
     const [estudiante, setEstudiante] = useState(null)
+    const [todosEstudiantes, setTodosEstudiantes] = useState([])
     const [asistencias, setAsistencias] = useState([])
     const [notas, setNotas] = useState([])
     const [anotaciones, setAnotaciones] = useState([])
@@ -21,6 +39,7 @@ function UsuarioDashboard() {
     const [recibidos, setRecibidos] = useState([])
     const [conversacion, setConversacion] = useState([])
     const [destinatarioId, setDestinatarioId] = useState('')
+    const [destinatarioNombre, setDestinatarioNombre] = useState('')
     const [contenido, setContenido] = useState('')
     const [mensajeEnviado, setMensajeEnviado] = useState('')
     const [error, setError] = useState('')
@@ -31,11 +50,18 @@ function UsuarioDashboard() {
         })
     }, [getAccessTokenSilently])
 
+    // Busca el nombre de un remitente por su ID en la lista de estudiantes
+    const obtenerNombreRemitente = (remitenteId) => {
+        const encontrado = todosEstudiantes.find(e => e.id === remitenteId)
+        return encontrado ? `${encontrado.nombre} ${encontrado.apellido}` : `ID: ${remitenteId}`
+    }
+
     const cargarDatos = useCallback(async () => {
         try {
             const token = await obtenerToken()
 
             const estudiantesData = await obtenerEstudiantes(token)
+            setTodosEstudiantes(estudiantesData)
 
             const estudianteEncontrado = estudiantesData.find(
                 e => e.email === user.email
@@ -78,16 +104,16 @@ function UsuarioDashboard() {
         }
     }, [obtenerToken, user])
 
-    const cargarConversacion = async (otroId) => {
-        if (!estudiante || !otroId) return
+    const seleccionarDestinatario = async (destinatario) => {
+        setDestinatarioId(destinatario.id)
+        setDestinatarioNombre(`${destinatario.nombre} ${destinatario.apellido}`)
+        if (!estudiante) return
         try {
             const token = await obtenerToken()
-            const data = await obtenerConversacion(token, estudiante.id, otroId)
+            const data = await obtenerConversacion(token, estudiante.id, destinatario.id)
             setConversacion(data)
-            setDestinatarioId(otroId)
         } catch (err) {
             console.error(err)
-            setError('No se pudo cargar la conversación.')
         }
     }
 
@@ -97,7 +123,7 @@ function UsuarioDashboard() {
         setMensajeEnviado('')
 
         if (!destinatarioId || !contenido) {
-            setError('Completa todos los campos.')
+            setError('Selecciona un destinatario y escribe un mensaje.')
             return
         }
 
@@ -110,7 +136,8 @@ function UsuarioDashboard() {
             })
             setContenido('')
             setMensajeEnviado('Mensaje enviado.')
-            await cargarConversacion(destinatarioId)
+            const data = await obtenerConversacion(token, estudiante.id, destinatarioId)
+            setConversacion(data)
         } catch (err) {
             console.error(err)
             setError('Error al enviar el mensaje.')
@@ -153,59 +180,81 @@ function UsuarioDashboard() {
                     <div className="alert alert-success">{mensajeEnviado}</div>
                 )}
 
-                <div className="row mb-3">
+                <div className="row">
+                    {/* Lista de estudiantes para seleccionar destinatario */}
                     <div className="col-md-4">
-                        <label className="form-label">ID del destinatario</label>
-                        <input
-                            type="number"
-                            className="form-control"
-                            placeholder="ID del docente o apoderado"
-                            value={destinatarioId}
-                            onChange={e => setDestinatarioId(e.target.value)}
-                            onBlur={() => cargarConversacion(destinatarioId)}
-                        />
+                        <h5 className="mb-3">Selecciona un destinatario</h5>
+                        <ul className="list-group">
+                            {todosEstudiantes
+                                .filter(e => e.id !== estudiante?.id)
+                                .map(e => (
+                                    <li
+                                        key={e.id}
+                                        className={`list-group-item list-group-item-action ${
+                                            destinatarioId === e.id ? 'active' : ''
+                                        }`}
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => seleccionarDestinatario(e)}
+                                    >
+                                        {e.nombre} {e.apellido}
+                                    </li>
+                                ))
+                            }
+                        </ul>
                     </div>
-                </div>
 
-                <div
-                    className="mb-3 p-2 bg-dark rounded"
-                    style={{ minHeight: '150px', maxHeight: '300px', overflowY: 'auto' }}
-                >
-                    {conversacion.length === 0 && (
-                        <p className="text-muted">Sin mensajes en esta conversación.</p>
-                    )}
-                    {conversacion.map(m => (
+                    {/* Conversación */}
+                    <div className="col-md-8">
+                        <h5 className="mb-3">
+                            {destinatarioNombre
+                                ? `Conversación con ${destinatarioNombre}`
+                                : 'Selecciona un destinatario'}
+                        </h5>
+
                         <div
-                            key={m.id}
-                            className={`mb-2 p-2 rounded ${
-                                m.remitenteId === estudiante?.id
-                                    ? 'text-end bg-secondary'
-                                    : 'text-start'
-                            }`}
+                            className="mb-3 p-2 bg-dark rounded"
+                            style={{ minHeight: '150px', maxHeight: '300px', overflowY: 'auto' }}
                         >
-                            <p className="mb-1">{m.contenido}</p>
-                            <small className="text-muted">{m.fechaEnvio}</small>
+                            {conversacion.length === 0 && (
+                                <p className="text-muted">Sin mensajes en esta conversación.</p>
+                            )}
+                            {conversacion.map(m => (
+                                <div
+                                    key={m.id}
+                                    className={`mb-2 p-2 rounded ${
+                                        m.remitenteId === estudiante?.id
+                                            ? 'text-end bg-secondary'
+                                            : 'text-start'
+                                    }`}
+                                >
+                                    <p className="mb-1">{m.contenido}</p>
+                                    <small className="text-muted">
+                                        {formatearFecha(m.fechaEnvio)}
+                                    </small>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+
+                        <form onSubmit={enviar} className="row g-2">
+                            <div className="col-9">
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Escribe un mensaje..."
+                                    value={contenido}
+                                    onChange={e => setContenido(e.target.value)}
+                                />
+                            </div>
+                            <div className="col-3">
+                                <button className="btn medieval-btn w-100" type="submit">
+                                    Enviar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
-                <form onSubmit={enviar} className="row g-2">
-                    <div className="col-9">
-                        <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Escribe un mensaje..."
-                            value={contenido}
-                            onChange={e => setContenido(e.target.value)}
-                        />
-                    </div>
-                    <div className="col-3">
-                        <button className="btn medieval-btn w-100" type="submit">
-                            Enviar
-                        </button>
-                    </div>
-                </form>
-
+                {/* Bandeja de entrada */}
                 <h5 className="mt-4 mb-3">Bandeja de entrada</h5>
                 <table className="table table-dark table-striped">
                     <thead>
@@ -219,9 +268,9 @@ function UsuarioDashboard() {
                     <tbody>
                         {recibidos.map(m => (
                             <tr key={m.id}>
-                                <td>ID: {m.remitenteId}</td>
+                                <td>{obtenerNombreRemitente(m.remitenteId)}</td>
                                 <td>{m.contenido}</td>
-                                <td>{m.fechaEnvio}</td>
+                                <td>{formatearFecha(m.fechaEnvio)}</td>
                                 <td>{m.leido ? 'Sí' : 'No'}</td>
                             </tr>
                         ))}
@@ -247,7 +296,7 @@ function UsuarioDashboard() {
                                 <td>{n.id}</td>
                                 <td>{n.mensaje}</td>
                                 <td>{n.estado}</td>
-                                <td>{n.fechaCreacion}</td>
+                                <td>{formatearFecha(n.fechaCreacion)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -269,7 +318,7 @@ function UsuarioDashboard() {
                         {asistencias.map(a => (
                             <tr key={a.id}>
                                 <td>{a.id}</td>
-                                <td>{a.fechaHora}</td>
+                                <td>{formatearFecha(a.fechaHora)}</td>
                                 <td>{a.estado}</td>
                             </tr>
                         ))}
@@ -320,7 +369,7 @@ function UsuarioDashboard() {
                                 <td>{a.id}</td>
                                 <td>{a.tipo}</td>
                                 <td>{a.descripcion}</td>
-                                <td>{a.fechaCreacion}</td>
+                                <td>{formatearFecha(a.fechaCreacion)}</td>
                             </tr>
                         ))}
                     </tbody>

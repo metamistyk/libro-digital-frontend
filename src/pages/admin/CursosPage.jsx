@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 
 import {
@@ -21,48 +21,33 @@ function CursosPage() {
         seccion: ''
     })
 
-    useEffect(() => {
-        cargarCursos()
-    }, [])
-
-    const obtenerToken = async () => {
+    const obtenerToken = useCallback(async () => {
         return await getAccessTokenSilently({
             authorizationParams: {
                 audience: 'https://libro-digital-api'
             }
         })
-    }
+    }, [getAccessTokenSilently])
 
-    const cargarCursos = async () => {
-
+    const cargarCursos = useCallback(async () => {
         try {
             const token = await obtenerToken()
             const data = await obtenerCursos(token)
-
             setCursos(data)
             setError('')
         } catch (error) {
             console.error('Error cargando cursos:', error)
-            setError('No se pudieron cargar los cursos. Verifica que academico-service esté activo y que el token Auth0 sea válido.')
+            setError('No se pudieron cargar los cursos.')
         }
-    }
+    }, [obtenerToken])
 
     const manejarCambio = (event) => {
         const { name, value } = event.target
-
-        setFormulario({
-            ...formulario,
-            [name]: value
-        })
+        setFormulario({ ...formulario, [name]: value })
     }
 
     const limpiarFormulario = () => {
-        setFormulario({
-            nombre: '',
-            nivel: '',
-            seccion: ''
-        })
-
+        setFormulario({ nombre: '', nivel: '', seccion: '' })
         setEditandoId(null)
     }
 
@@ -76,13 +61,11 @@ function CursosPage() {
 
         try {
             const token = await obtenerToken()
-
             if (editandoId) {
                 await actualizarCurso(token, editandoId, formulario)
             } else {
                 await crearCurso(token, formulario)
             }
-
             limpiarFormulario()
             await cargarCursos()
             setError('')
@@ -94,7 +77,6 @@ function CursosPage() {
 
     const prepararEdicion = (curso) => {
         setEditandoId(curso.id)
-
         setFormulario({
             nombre: curso.nombre,
             nivel: curso.nivel,
@@ -104,14 +86,10 @@ function CursosPage() {
 
     const borrarCurso = async (id) => {
         const confirmar = window.confirm('¿Seguro que deseas eliminar este curso?')
-
-        if (!confirmar) {
-            return
-        }
+        if (!confirmar) return
 
         try {
             const token = await obtenerToken()
-
             await eliminarCurso(token, id)
             await cargarCursos()
             setError('')
@@ -121,25 +99,24 @@ function CursosPage() {
         }
     }
 
+    useEffect(() => {
+        const inicializar = async () => {
+            await cargarCursos()
+        }
+        inicializar()
+    }, [cargarCursos])
+
     return (
         <div className="container py-5">
 
             <div className="medieval-card mb-4">
+                <h1 className="mb-4">Gestión de Cursos</h1>
 
-                <h1 className="mb-4">
-                    Gestión de Cursos
-                </h1>
-
-                {
-                    error && (
-                        <div className="alert alert-warning">
-                            {error}
-                        </div>
-                    )
-                }
+                {error && (
+                    <div className="alert alert-warning">{error}</div>
+                )}
 
                 <form onSubmit={guardarCurso} className="row g-3">
-
                     <div className="col-md-4">
                         <label className="form-label">Nombre</label>
                         <input
@@ -150,7 +127,6 @@ function CursosPage() {
                             onChange={manejarCambio}
                         />
                     </div>
-
                     <div className="col-md-4">
                         <label className="form-label">Nivel</label>
                         <input
@@ -161,7 +137,6 @@ function CursosPage() {
                             onChange={manejarCambio}
                         />
                     </div>
-
                     <div className="col-md-4">
                         <label className="form-label">Sección</label>
                         <input
@@ -172,39 +147,27 @@ function CursosPage() {
                             onChange={manejarCambio}
                         />
                     </div>
-
                     <div className="col-12 d-flex gap-2">
                         <button className="btn medieval-btn" type="submit">
                             {editandoId ? 'Actualizar Curso' : 'Crear Curso'}
                         </button>
-
-                        {
-                            editandoId && (
-                                <button
-                                    className="btn btn-secondary"
-                                    type="button"
-                                    onClick={limpiarFormulario}
-                                >
-                                    Cancelar
-                                </button>
-                            )
-                        }
+                        {editandoId && (
+                            <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={limpiarFormulario}
+                            >
+                                Cancelar
+                            </button>
+                        )}
                     </div>
-
                 </form>
-
             </div>
 
             <div className="medieval-card">
-
-                <h2 className="mb-4">
-                    Cursos Registrados
-                </h2>
-
+                <h2 className="mb-4">Cursos Registrados</h2>
                 <div className="table-responsive">
-
                     <table className="table table-dark table-striped align-middle">
-
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -214,41 +177,34 @@ function CursosPage() {
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-
                         <tbody>
-                            {
-                                cursos.map(curso => (
-                                    <tr key={curso.id}>
-                                        <td>{curso.id}</td>
-                                        <td>{curso.nombre}</td>
-                                        <td>{curso.nivel}</td>
-                                        <td>{curso.seccion}</td>
-                                        <td>
-                                            <div className="d-flex gap-2">
-                                                <button
-                                                    className="btn btn-sm btn-warning"
-                                                    onClick={() => prepararEdicion(curso)}
-                                                >
-                                                    Editar
-                                                </button>
-
-                                                <button
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() => borrarCurso(curso.id)}
-                                                >
-                                                    Eliminar
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            }
+                            {cursos.map(curso => (
+                                <tr key={curso.id}>
+                                    <td>{curso.id}</td>
+                                    <td>{curso.nombre}</td>
+                                    <td>{curso.nivel}</td>
+                                    <td>{curso.seccion}</td>
+                                    <td>
+                                        <div className="d-flex gap-2">
+                                            <button
+                                                className="btn btn-sm btn-warning"
+                                                onClick={() => prepararEdicion(curso)}
+                                            >
+                                                Editar
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => borrarCurso(curso.id)}
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
-
                     </table>
-
                 </div>
-
             </div>
 
         </div>

@@ -2,17 +2,35 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { enviarMensaje, obtenerRecibidos, obtenerConversacion } from '../../api/mensajeriaApi'
 import { obtenerEstudiantesBff } from '../../api/bffApi'
+import { obtenerUsuarioPorEmail } from '../../api/usuariosApi'
+
+const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return '—'
+    try {
+        const fecha = new Date(fechaStr)
+        return fecha.toLocaleString('es-CL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    } catch {
+        return fechaStr
+    }
+}
 
 function MensajeriaPage() {
 
-    const { getAccessTokenSilently } = useAuth0()
+    const { getAccessTokenSilently, user } = useAuth0()
 
     const [usuarios, setUsuarios] = useState([])
+    const [docenteId, setDocenteId] = useState(null)
     const [destinatarioId, setDestinatarioId] = useState('')
+    const [destinatarioNombre, setDestinatarioNombre] = useState('')
     const [conversacion, setConversacion] = useState([])
     const [recibidos, setRecibidos] = useState([])
     const [contenido, setContenido] = useState('')
-    const [remitenteId, setRemitenteId] = useState('')
     const [error, setError] = useState('')
     const [mensaje, setMensaje] = useState('')
 
@@ -22,35 +40,41 @@ function MensajeriaPage() {
         })
     }, [getAccessTokenSilently])
 
-    const cargarUsuarios = useCallback(async () => {
+    const obtenerNombreRemitente = (remitenteId) => {
+        const encontrado = usuarios.find(u => u.id === remitenteId)
+        return encontrado ? `${encontrado.nombre} ${encontrado.apellido}` : `ID: ${remitenteId}`
+    }
+
+    const cargarDatos = useCallback(async () => {
         try {
             const token = await obtenerToken()
-            const data = await obtenerEstudiantesBff(token)
-            setUsuarios(data)
+
+            // Obtiene el docente autenticado por email
+            const docente = await obtenerUsuarioPorEmail(token, user.email)
+            if (docente) {
+                setDocenteId(docente.id)
+                const recibidosData = await obtenerRecibidos(token, docente.id)
+                setRecibidos(recibidosData)
+            }
+
+            // Obtiene lista de estudiantes para mostrar como destinatarios
+            const estudiantesData = await obtenerEstudiantesBff(token)
+            setUsuarios(estudiantesData)
+
         } catch (err) {
             console.error(err)
-            setError('No se pudieron cargar los usuarios.')
+            setError('No se pudieron cargar los datos.')
         }
-    }, [obtenerToken])
+    }, [obtenerToken, user])
 
-    const cargarRecibidos = useCallback(async () => {
-        if (!remitenteId) return
+    const seleccionarDestinatario = async (destinatario) => {
+        if (!docenteId) return
         try {
             const token = await obtenerToken()
-            const data = await obtenerRecibidos(token, remitenteId)
-            setRecibidos(data)
-        } catch (err) {
-            console.error(err)
-        }
-    }, [obtenerToken, remitenteId])
-
-    const cargarConversacion = async (otroId) => {
-        if (!remitenteId || !otroId) return
-        try {
-            const token = await obtenerToken()
-            const data = await obtenerConversacion(token, remitenteId, otroId)
+            setDestinatarioId(destinatario.id)
+            setDestinatarioNombre(`${destinatario.nombre} ${destinatario.apellido}`)
+            const data = await obtenerConversacion(token, docenteId, destinatario.id)
             setConversacion(data)
-            setDestinatarioId(otroId)
         } catch (err) {
             console.error(err)
             setError('No se pudo cargar la conversación.')
@@ -62,21 +86,22 @@ function MensajeriaPage() {
         setError('')
         setMensaje('')
 
-        if (!remitenteId || !destinatarioId || !contenido) {
-            setError('Completa todos los campos.')
+        if (!docenteId || !destinatarioId || !contenido) {
+            setError('Selecciona un destinatario y escribe un mensaje.')
             return
         }
 
         try {
             const token = await obtenerToken()
             await enviarMensaje(token, {
-                remitenteId: Number(remitenteId),
+                remitenteId: Number(docenteId),
                 destinatarioId: Number(destinatarioId),
                 contenido
             })
             setContenido('')
             setMensaje('Mensaje enviado.')
-            await cargarConversacion(destinatarioId)
+            const data = await obtenerConversacion(token, docenteId, destinatarioId)
+            setConversacion(data)
         } catch (err) {
             console.error(err)
             setError('Error al enviar el mensaje.')
@@ -85,17 +110,10 @@ function MensajeriaPage() {
 
     useEffect(() => {
         const inicializar = async () => {
-            await cargarUsuarios()
+            await cargarDatos()
         }
         inicializar()
-    }, [cargarUsuarios])
-
-    useEffect(() => {
-        const inicializar = async () => {
-            await cargarRecibidos()
-        }
-        inicializar()
-    }, [cargarRecibidos])
+    }, [cargarDatos])
 
     return (
         <div className="container py-5">
@@ -106,36 +124,23 @@ function MensajeriaPage() {
                 {error && <div className="alert alert-warning">{error}</div>}
             </div>
 
-            {/* Configuración del remitente */}
-            <div className="medieval-card mb-4">
-                <h5 className="mb-3">Tu ID de usuario</h5>
-                <input
-                    type="number"
-                    className="form-control"
-                    placeholder="Ingresa tu ID de usuario"
-                    value={remitenteId}
-                    onChange={e => setRemitenteId(e.target.value)}
-                />
-            </div>
-
             <div className="row">
 
-                {/* Lista de usuarios */}
+                {/* Lista de estudiantes */}
                 <div className="col-md-4">
                     <div className="medieval-card">
-                        <h5 className="mb-3">Usuarios</h5>
+                        <h5 className="mb-3">Selecciona un destinatario</h5>
                         <ul className="list-group">
                             {usuarios.map(u => (
                                 <li
                                     key={u.id}
                                     className={`list-group-item list-group-item-action ${
-                                        destinatarioId == u.id ? 'active' : ''
+                                        destinatarioId === u.id ? 'active' : ''
                                     }`}
                                     style={{ cursor: 'pointer' }}
-                                    onClick={() => cargarConversacion(u.id)}
+                                    onClick={() => seleccionarDestinatario(u)}
                                 >
                                     {u.nombre} {u.apellido}
-                                    <small className="d-block text-muted">ID: {u.id}</small>
                                 </li>
                             ))}
                         </ul>
@@ -146,9 +151,9 @@ function MensajeriaPage() {
                 <div className="col-md-8">
                     <div className="medieval-card">
                         <h5 className="mb-3">
-                            {destinatarioId
-                                ? `Conversación con usuario #${destinatarioId}`
-                                : 'Selecciona un usuario'}
+                            {destinatarioNombre
+                                ? `Conversación con ${destinatarioNombre}`
+                                : 'Selecciona un destinatario'}
                         </h5>
 
                         <div
@@ -166,14 +171,14 @@ function MensajeriaPage() {
                                 <div
                                     key={m.id}
                                     className={`mb-2 p-2 rounded ${
-                                        m.remitenteId == remitenteId
+                                        m.remitenteId === docenteId
                                             ? 'text-end bg-secondary'
                                             : 'text-start bg-dark'
                                     }`}
                                 >
                                     <p className="mb-1">{m.contenido}</p>
                                     <small className="text-muted">
-                                        {m.fechaEnvio}
+                                        {formatearFecha(m.fechaEnvio)}
                                     </small>
                                 </div>
                             ))}
@@ -190,10 +195,7 @@ function MensajeriaPage() {
                                 />
                             </div>
                             <div className="col-3">
-                                <button
-                                    className="btn medieval-btn w-100"
-                                    type="submit"
-                                >
+                                <button className="btn medieval-btn w-100" type="submit">
                                     Enviar
                                 </button>
                             </div>
@@ -203,7 +205,7 @@ function MensajeriaPage() {
 
             </div>
 
-            {/* Mensajes recibidos */}
+            {/* Bandeja de entrada */}
             <div className="medieval-card mt-4">
                 <h5 className="mb-3">Bandeja de entrada</h5>
                 {recibidos.length === 0 && (
@@ -221,9 +223,9 @@ function MensajeriaPage() {
                     <tbody>
                         {recibidos.map(m => (
                             <tr key={m.id}>
-                                <td>ID: {m.remitenteId}</td>
+                                <td>{obtenerNombreRemitente(m.remitenteId)}</td>
                                 <td>{m.contenido}</td>
-                                <td>{m.fechaEnvio}</td>
+                                <td>{formatearFecha(m.fechaEnvio)}</td>
                                 <td>{m.leido ? 'Sí' : 'No'}</td>
                             </tr>
                         ))}

@@ -3,7 +3,6 @@ import apiClient from './apiClient'
 const ACADEMICO_URL = 'http://localhost:8081/api/v1'
 
 // Cursos
-
 export const obtenerCursos = async (token) => {
     const client = apiClient(token)
     const response = await client.get(`${ACADEMICO_URL}/cursos`)
@@ -24,11 +23,11 @@ export const actualizarCurso = async (token, id, curso) => {
 
 export const eliminarCurso = async (token, id) => {
     const client = apiClient(token)
-    await client.delete(`${ACADEMICO_URL}/cursos/${id}`)
+    const response = await client.delete(`${ACADEMICO_URL}/cursos/${id}`)
+    return response.data
 }
 
 // Asignaturas
-
 export const obtenerAsignaturas = async (token) => {
     const client = apiClient(token)
     const response = await client.get(`${ACADEMICO_URL}/asignaturas`)
@@ -49,11 +48,11 @@ export const actualizarAsignatura = async (token, id, asignatura) => {
 
 export const eliminarAsignatura = async (token, id) => {
     const client = apiClient(token)
-    await client.delete(`${ACADEMICO_URL}/asignaturas/${id}`)
+    const response = await client.delete(`${ACADEMICO_URL}/asignaturas/${id}`)
+    return response.data
 }
 
-// Periodos académicos
-
+// Periodos
 export const obtenerPeriodos = async (token) => {
     const client = apiClient(token)
     const response = await client.get(`${ACADEMICO_URL}/periodos-academicos`)
@@ -66,21 +65,51 @@ export const crearPeriodo = async (token, periodo) => {
     return response.data
 }
 
-// Asignaciones docentes
+export const actualizarPeriodo = async (token, id, periodo) => {
+    const client = apiClient(token)
+    const response = await client.put(`${ACADEMICO_URL}/periodos-academicos/${id}`, periodo)
+    return response.data
+}
 
-export const obtenerAsignacionesDocentes = async (token) => {
+export const eliminarPeriodo = async (token, id) => {
+    const client = apiClient(token)
+    const response = await client.delete(`${ACADEMICO_URL}/periodos-academicos/${id}`)
+    return response.data
+}
+
+// Asignaciones docentes
+export const obtenerAsignaciones = async (token) => {
     const client = apiClient(token)
     const response = await client.get(`${ACADEMICO_URL}/asignaciones-docentes`)
     return response.data
 }
 
-export const crearAsignacionDocente = async (token, asignacion) => {
+// Alias para compatibilidad con páginas existentes
+export const obtenerAsignacionesDocentes = obtenerAsignaciones
+
+export const crearAsignacion = async (token, asignacion) => {
     const client = apiClient(token)
     const response = await client.post(`${ACADEMICO_URL}/asignaciones-docentes`, asignacion)
     return response.data
 }
 
-export const eliminarAsignacionDocente = async (token, id) => {
+// Alias para compatibilidad con páginas existentes
+export const crearAsignacionDocente = crearAsignacion
+
+export const eliminarAsignacion = async (token, id) => {
     const client = apiClient(token)
-    await client.delete(`${ACADEMICO_URL}/asignaciones-docentes/${id}`)
+    const response = await client.delete(`${ACADEMICO_URL}/asignaciones-docentes/${id}`)
+    return response.data
+}
+
+// Alias para compatibilidad con páginas existentes
+export const eliminarAsignacionDocente = eliminarAsignacion
+
+export const obtenerAsignacionesPorDocente = async (token, docenteId) => {
+    const client = apiClient(token)
+    const response = await client.get(
+        `${ACADEMICO_URL}/asignaciones-docentes/por-docente`,
+        { params: { docenteId } }
+    )
+    return response.data
 }

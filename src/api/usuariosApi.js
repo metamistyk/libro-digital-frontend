@@ -10,6 +10,13 @@ export const obtenerUsuarios = async (token) => {
     return response.data
 }
 
+export const obtenerUsuarioPorEmail = async (token, email) => {
+    const client = apiClient(token)
+    const response = await client.get(`${USUARIOS_URL}/usuarios`)
+    const usuarios = response.data
+    return usuarios.find(u => u.email === email) || null
+}
+
 export const crearUsuario = async (usuario, token) => {
     const client = apiClient(token)
     const response = await client.post(`${USUARIOS_URL}/usuarios`, usuario)
